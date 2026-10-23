@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeFixer AI — Autonomous Coding & Debugging Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-card: #131b2e;
+      --bg-card-hover: #1a253e;
+      --border: #232f48;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #10b981;
+      --purple: #a855f7;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Fira Code', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navbar */
+    header {
+      background-color: #0b1120;
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      background: linear-gradient(135deg, #3b82f6, #a855f7);
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: white;
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-badge {
+      background: rgba(168, 85, 247, 0.15);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      color: #c084fc;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 9999px;
+      margin-left: 0.5rem;
+    }
+
+    .nav-stats {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background-color: var(--accent);
+      border-radius: 50%;
+      margin-right: 0.35rem;
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    /* Container */
+    main {
+      flex: 1;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* LangGraph Flow Pipeline */
+    .pipeline-container {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+    }
+
+    .pipeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .pipeline-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .pipeline-steps {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      position: relative;
+      overflow-x: auto;
+      padding: 0.25rem 0;
+    }
+
+    .step-pill {
+      flex: 1;
+      min-width: 140px;
+      background: #0d1527;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      transition: all 0.25s ease;
+    }
+
+    .step-pill.active {
+      border-color: var(--purple);
+      background: rgba(168, 85, 247, 0.12);
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
+    }
+
+    .step-pill.completed {
+      border-color: var(--accent);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .step-pill.active .step-num {
+      background: var(--purple);
+      color: white;
+    }
+
+    .step-pill.completed .step-num {
+      background: var(--accent);
+      color: white;
+    }
+
+    .step-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .step-sub {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .step-arrow {
+      color: var(--border);
+      font-size: 0.8rem;
+    }
+
+    /* Main Workspace Layout */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.25fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Left Card: Inputs */
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .mode-toggle {
+      display: flex;
+      background: #0d1527;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.25rem;
+    }
+
+    .mode-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .mode-btn.active {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .preset-select {
+      background: #0d1527;
+      border: 1px solid var(--border);
+      color: #cbd5e1;
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    textarea, input, select {
+      background: #090d16;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+      resize: vertical;
+    }
+
+    textarea:focus, input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    .options-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .btn-submit {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: white;
+      border: none;
+      padding: 0.85rem 1.5rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      transition: all 0.2s;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      background: linear-gradient(135deg, #1d4ed8, #6d28d9);
+      transform: translateY(-1px);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Right Card: Output & Results */
+    .results-card {
+      min-height: 600px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tabs-nav {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.5rem 0.85rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: #0d1527;
+      color: var(--primary);
+      border: 1px solid var(--border);
+    }
+
+    .tab-content {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    /* --- Modern Extended Thinking Component (GPT/Claude/Gemini style) --- */
+    .thinking-accordion {
+      background: #0d1527;
+      border: 1px solid #3b2d54;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .thinking-header {
+      padding: 0.65rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      background: rgba(168, 85, 247, 0.05);
+      border-bottom: 1px solid transparent;
+      transition: background 0.2s;
+    }
+
+    .thinking-header:hover {
+      background: rgba(168, 85, 247, 0.1);
+    }
+
+    .thinking-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.825rem;
+      font-weight: 600;
+      color: #d8b4fe;
+    }
+
+    .thinking-badge {
+      background: rgba(168, 85, 247, 0.15);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      color: #c084fc;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 9999px;
+      font-weight: 500;
+      margin-left: 0.5rem;
+    }
+
+    .thinking-chevron {
+      color: #a855f7;
+      font-size: 0.75rem;
+      transition: transform 0.25s ease;
+    }
+
+    .thinking-chevron.open {
+      transform: rotate(180deg);
+    }
+
+    .thinking-body {
+      padding: 0.85rem 1rem;
+      font-size: 0.825rem;
+      line-height: 1.6;
+      color: #cbd5e1;
+      background: #090d16;
+      border-top: 1px solid #231d36;
+      white-space: pre-line;
+      display: none;
+      font-family: var(--font-sans);
+    }
+
+    .thinking-body.open {
+      display: block;
+    }
+
+    /* --- Modern Conversational Response Card --- */
+    .response-card {
+      background: #0d1527;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+
+    .response-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #3b82f6, #10b981);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      color: white;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    .response-text {
+      font-size: 0.875rem;
+      line-height: 1.55;
+      color: #e2e8f0;
+      font-family: var(--font-sans);
+    }
+
+    /* Code Container */
+    .code-container {
+      position: relative;
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .code-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0d1527;
+      padding: 0.4rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .btn-copy {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      transition: all 0.2s;
+    }
+
+    .btn-copy:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    pre code {
+      display: block;
+      padding: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* Explanation Window (Normal font, separate card below code) */
+    .explanation-card {
+      background: #0d1527;
+      border: 1px solid #3b82f644;
+      border-left: 4px solid var(--primary);
+      border-radius: 8px;
+      padding: 0.85rem 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .explanation-title {
+      font-size: 0.825rem;
+      font-weight: 700;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-sans);
+    }
+
+    .explanation-text {
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: #e2e8f0;
+      font-family: var(--font-sans);
+    }
+
+    .status-banner {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .status-banner.success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+
+    .status-banner.failed {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+
+    /* Terminal Logs */
+    .terminal-box {
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: #a5b4fc;
+      max-height: 300px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+
+    .log-line {
+      margin-bottom: 0.35rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .log-time {
+      color: #64748b;
+    }
+
+    .log-node {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+
+    /* History timeline */
+    .timeline-item {
+      background: #0d1527;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .timeline-critique {
+      background: rgba(245, 158, 11, 0.1);
+      border-left: 3px solid var(--warning);
+      padding: 0.5rem 0.75rem;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      color: #fcd34d;
+      font-family: var(--font-sans);
+    }
+
+    .spinner {
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top: 2px solid white;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <i class="fa-solid fa-code-merge"></i>
+      </div>
+      <div>
+        <span class="brand-title">CodeFixer AI</span>
+        <span class="brand-badge">LangGraph Cyclic Agent</span>
+      </div>
+    </div>
+    <div class="nav-stats">
+      <div>
+        <span class="status-dot"></span>
+        <span id="ollama-status">Ollama Engine: Ready</span>
+      </div>
+      <div style="border-left: 1px solid var(--border); padding-left: 1rem;">
+        <i class="fa-solid fa-microchip" style="margin-right: 0.3rem;"></i> Local GPU Accelerated
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main>
+
+    <!-- Visual LangGraph Execution State Machine -->
+    <div class="pipeline-container">
+      <div class="pipeline-header">
+        <div class="pipeline-title">
+          <i class="fa-solid fa-diagram-project" style="color: var(--primary);"></i>
+          LangGraph StateGraph Execution Pipeline
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">
+          Cyclic State Machine • Isolated Subprocess Sandbox • Checkpointed
+        </div>
+      </div>
+
+      <div class="pipeline-steps">
+        <div class="step-pill" id="step-analyze">
+          <div class="step-num">1</div>
+          <div>
+            <div class="step-label">Analyze Input</div>
+            <div class="step-sub">Spec & intent parse</div>
+          </div>
+        </div>
+        <div class="step-arrow"><i class="fa-solid fa-angle-right"></i></div>
+
+        <div class="step-pill" id="step-tests">
+          <div class="step-num">2</div>
+          <div>
+            <div class="step-label">Synthesize Tests</div>
+            <div class="step-sub">Auto edge-case asserts</div>
+          </div>
+        </div>
+        <div class="step-arrow"><i class="fa-solid fa-angle-right"></i></div>
+
+        <div class="step-pill" id="step-code">
+          <div class="step-num">3</div>
+          <div>
+            <div class="step-label">Code Synthesizer</div>
+            <div class="step-sub">Initial candidate</div>
+          </div>
+        </div>
+        <div class="step-arrow"><i class="fa-solid fa-angle-right"></i></div>
+
+        <div class="step-pill" id="step-sandbox">
+          <div class="step-num">4</div>
+          <div>
+            <div class="step-label">Execution Sandbox</div>
+            <div class="step-sub">Isolated runner</div>
+          </div>
+        </div>
+        <div class="step-arrow"><i class="fa-solid fa-rotate" title="Cyclic conditional edge"></i></div>
+
+        <div class="step-pill" id="step-repair">
+          <div class="step-num">5</div>
+          <div>
+            <div class="step-label">Debug & Repair</div>
+            <div class="step-sub">Traceback loop</div>
+          </div>
+        </div>
+        <div class="step-arrow"><i class="fa-solid fa-angle-right"></i></div>
+
+        <div class="step-pill" id="step-finalize">
+          <div class="step-num">6</div>
+          <div>
+            <div class="step-label">Verified Code</div>
+            <div class="step-sub">100% tests passed</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workspace Grid -->
+    <div class="workspace-grid">
+
+      <!-- Left Input Panel -->
+      <div class="card">
+        
+        <!-- Mode Switcher -->
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="btn-mode-prompt" onclick="switchMode('prompt')">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Prompt-Based Generation
+          </button>
+          <button class="mode-btn" id="btn-mode-debug" onclick="switchMode('debug')">
+            <i class="fa-solid fa-bug-slash"></i> Debug & Fix Existing Code
+          </button>
+        </div>
+
+        <!-- Optional Presets Dropdown -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>Example Template (Optional):</span>
+            <select class="preset-select" id="presetSelect" onchange="loadPreset()">
+              <option value="" selected>-- Blank Slate (Enter your own code/prompt) --</option>
+              <option value="preset1">Example 1: Prime Number Checker with Square Root Optimization</option>
+              <option value="preset2">Example 2: Buggy Bank Balance (Fails Negative Balance Check)</option>
+              <option value="preset3">Example 3: Balanced Parentheses Parser (Nested Stacks)</option>
+              <option value="preset4">Example 4: Intersperse Delimiter (Off-by-One List Boundary)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Main Input Textarea (Empty by default) -->
+        <div class="form-group">
+          <label class="form-label" id="inputLabel" for="userInput">
+            Function Prompt / Specification:
+          </label>
+          <textarea id="userInput" rows="9" placeholder="Enter your prompt or function description here..."></textarea>
+        </div>
+
+        <!-- Optional Custom Tests Textarea (Empty by default) -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>Unit Test Assertions (Optional):</span>
+            <span style="font-size: 0.75rem; color: #38bdf8;">Auto-generated by agent if left empty</span>
+          </div>
+          <textarea id="customTests" rows="4" placeholder="Leave blank to let the agent auto-generate edge-case tests, or paste custom assert statements..."></textarea>
+        </div>
+
+        <!-- Configurations -->
+        <div class="options-row">
+          <div class="form-group">
+            <label class="form-label" for="modelSelect">Local LLM Model:</label>
+            <select id="modelSelect">
+              <option value="qwen2.5-coder:1.5b">qwen2.5-coder:1.5b (Fast & Accurate)</option>
+              <option value="llama3.2:3b">llama3.2:3b</option>
+              <option value="qwen2.5-coder:7b">qwen2.5-coder:7b</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="maxRetries">Max Self-Repair Loops:</label>
+            <select id="maxRetries">
+              <option value="3" selected>3 Retry Loops</option>
+              <option value="4">4 Retry Loops</option>
+              <option value="5">5 Retry Loops</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <button class="btn-submit" id="btnRun" onclick="runAgent()">
+          <i class="fa-solid fa-play"></i>
+          <span>Run Autonomous Agent</span>
+        </button>
+
+      </div>
+
+      <!-- Right Results Panel -->
+      <div class="card results-card">
+        
+        <!-- Navigation Tabs -->
+        <div class="tabs-nav">
+          <button class="tab-btn active" onclick="switchTab('code')">
+            <i class="fa-solid fa-code"></i> Verified Code
+          </button>
+          <button class="tab-btn" onclick="switchTab('tests')">
+            <i class="fa-solid fa-vial-circle-check"></i> Test Cases Suite
+          </button>
+          <button class="tab-btn" onclick="switchTab('history')">
+            <i class="fa-solid fa-timeline"></i> Repair History
+          </button>
+          <button class="tab-btn" onclick="switchTab('logs')">
+            <i class="fa-solid fa-terminal"></i> LangGraph Trace Logs
+          </button>
+          <button class="tab-btn" onclick="switchTab('about')">
+            <i class="fa-solid fa-circle-info"></i> How LangGraph is Used
+          </button>
+        </div>
+
+        <!-- Status Banner -->
+        <div id="statusBanner" class="status-banner" style="display: none;">
+          <i id="statusIcon" class="fa-solid fa-check"></i>
+          <span id="statusText">Agent ready</span>
+        </div>
+
+        <!-- Tab 1: Clean Code Window + Thought Process & Diagnosis Windows -->
+        <div class="tab-content active" id="tab-code">
+          
+          <!-- 1. Modern Collapsible Thought Process (Like Claude / GPT-o1 / Gemini Thinking) -->
+          <div class="thinking-accordion" id="thinkingAccordion" style="display: none;">
+            <div class="thinking-header" onclick="toggleThinking()">
+              <div class="thinking-title">
+                <i class="fa-solid fa-brain" style="color: #c084fc;"></i>
+                <span>Thought Process & Responsible AI Reasoning</span>
+                <span class="thinking-badge" id="thinkingBadge">Thinking...</span>
+              </div>
+              <i class="fa-solid fa-chevron-down thinking-chevron" id="thinkingChevron"></i>
+            </div>
+            <div class="thinking-body" id="thinkingBody">
+              <!-- Internal thinking content -->
+            </div>
+          </div>
+
+          <!-- 2. Modern Conversational Response Overview -->
+          <div class="response-card" id="responseCard" style="display: none;">
+            <div class="response-avatar">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div class="response-text" id="responseText">
+              <!-- Concise, natural language response -->
+            </div>
+          </div>
+
+          <!-- 3. Pure Python Code Window -->
+          <div class="code-container" style="flex: 1; min-height: 240px;">
+            <div class="code-toolbar">
+              <span>Python 3 • Pure Verified Implementation</span>
+              <button class="btn-copy" onclick="copyCode()">
+                <i class="fa-regular fa-copy"></i> Copy Code
+              </button>
+            </div>
+            <pre><code id="codeOutput"># Verified Python code will appear here.
+# Free of comment clutter — verified against automated unit tests.</code></pre>
+          </div>
+
+          <!-- 4. Lower Window: Diagnosis & Fix Explanation (Normal Font) -->
+          <div class="explanation-card" id="explanationCard" style="display: none;">
+            <div class="explanation-title">
+              <i class="fa-regular fa-lightbulb"></i>
+              <span>Diagnosis & Fix Applied</span>
+            </div>
+            <div class="explanation-text" id="explanationText">
+              Diagnostic summary will appear here.
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Tab 2: Test Suite -->
+        <div class="tab-content" id="tab-tests">
+          <div class="code-container">
+            <div class="code-toolbar">
+              <span>Unit Test Assertions Executed</span>
+              <span id="testSourceTag" style="color: #38bdf8;">Auto-Synthesized by Agent</span>
+            </div>
+            <pre><code id="testsOutput"># Test cases will appear here once executed.</code></pre>
+          </div>
+        </div>
+
+        <!-- Tab 3: Repair History -->
+        <div class="tab-content" id="tab-history">
+          <div id="historyContainer" style="overflow-y: auto; max-height: 480px;">
+            <div style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem; text-align: center;">
+              Execution trajectory will appear here if repair iterations are triggered.
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Logs Stream -->
+        <div class="tab-content" id="tab-logs">
+          <div class="terminal-box" id="logsContainer">
+            <div class="log-line">
+              <span class="log-time">[Ready]</span>
+              <span>LangGraph agent initialized and ready for execution.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 5: Architecture / Where LangGraph is Used -->
+        <div class="tab-content" id="tab-about">
+          <div style="font-size: 0.85rem; line-height: 1.6; color: #cbd5e1; overflow-y: auto; max-height: 480px; padding: 0.5rem;">
+            <h4 style="color: #60a5fa; margin-bottom: 0.5rem;">Where and How is LangGraph Used?</h4>
+            <p style="margin-bottom: 0.75rem;">
+              Unlike traditional linear LLM chains that execute in a single direction (Input &rarr; Prompt &rarr; Output), 
+              <strong>LangGraph</strong> enables <strong>cyclical state machine orchestration</strong> with checkpoint persistence:
+            </p>
+            <ul style="margin-left: 1.5rem; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.4rem;">
+              <li><strong>StateGraph & Typed State:</strong> Explicitly threads candidate code, test execution stderr, assertion results, and retry counters across isolated worker nodes.</li>
+              <li><strong>Cyclic Conditional Edges:</strong> Evaluates sandbox results. If tests fail, it routes control back to the <code>debug_repair_node</code> to patch the bug, which loops back into the <code>sandbox_node</code> for re-testing.</li>
+              <li><strong>Subprocess Sandboxing:</strong> Safely runs generated code with timeout bounds to protect against infinite loops or resource exhaustion.</li>
+              <li><strong>State Checkpointing (MemorySaver):</strong> Snapshots every state transition so the entire diagnosis and repair trajectory is recorded and inspectable.</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    let currentMode = 'prompt';
+
+    const presets = {
+      preset1: {
+        mode: 'prompt',
+        prompt: `Write an optimized Python function is_prime(n: int) -> bool that checks whether a number is prime. It should handle numbers less than 2, 2 and 3, even numbers, and check factors up to the square root of n.`,
+        tests: ``
+      },
+      preset2: {
+        mode: 'debug',
+        prompt: `# Buggy Code: only checks total sum instead of checking running balance at each point
+def below_zero(operations: list[int]) -> bool:
+    """ Detect if at any point the balance of account falls below zero. """
+    return sum(operations) < 0`,
+        tests: ``
+      },
+      preset3: {
+        mode: 'prompt',
+        prompt: `def separate_paren_groups(paren_string: str) -> list[str]:
+    """ Input is a string containing multiple groups of nested parentheses. Separate those groups
+    into separate balanced strings. Ignore spaces.
+    >>> separate_paren_groups('( ) (( )) (( )( ))')
+    ['()', '(())', '(()())']
+    """`,
+        tests: ``
+      },
+      preset4: {
+        mode: 'debug',
+        prompt: `# Buggy Code: off-by-one boundary bug on empty and single item lists
+def intersperse(numbers: list[int], delimeter: int) -> list[int]:
+    """ Insert a number 'delimeter' between every two consecutive elements of numbers """
+    res = []
+    for n in numbers:
+        res.append(n)
+        res.append(delimeter)
+    return res[:-1]`,
+        tests: ``
+      }
+    };
+
+    function toggleThinking() {
+      const body = document.getElementById('thinkingBody');
+      const chevron = document.getElementById('thinkingChevron');
+      body.classList.toggle('open');
+      chevron.classList.toggle('open');
+    }
+
+    function switchMode(mode) {
+      currentMode = mode;
+      document.getElementById('btn-mode-prompt').classList.toggle('active', mode === 'prompt');
+      document.getElementById('btn-mode-debug').classList.toggle('active', mode === 'debug');
+      
+      const label = document.getElementById('inputLabel');
+      const input = document.getElementById('userInput');
+      
+      if (mode === 'prompt') {
+        label.innerText = 'Function Prompt / Specification:';
+        input.placeholder = 'e.g. Write a function to check if a string is an anagram of another, handling spaces and punctuation...';
+      } else {
+        label.innerText = 'Source Code with Bug to Fix:';
+        input.placeholder = 'Paste your buggy Python code here...';
+      }
+    }
+
+    function loadPreset() {
+      const val = document.getElementById('presetSelect').value;
+      if (!val || !presets[val]) {
+        document.getElementById('userInput').value = '';
+        document.getElementById('customTests').value = '';
+        return;
+      }
+      const p = presets[val];
+      switchMode(p.mode);
+      document.getElementById('userInput').value = p.prompt;
+      document.getElementById('customTests').value = p.tests;
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    function updatePills(activeId) {
+      const steps = ['analyze', 'tests', 'code', 'sandbox', 'repair', 'finalize'];
+      let found = false;
+      steps.forEach(s => {
+        const pill = document.getElementById('step-' + s);
+        pill.classList.remove('active', 'completed');
+        if (s === activeId) {
+          pill.classList.add('active');
+          found = true;
+        } else if (!found) {
+          pill.classList.add('completed');
+        }
+      });
+      if (activeId === 'finalize') {
+        steps.forEach(s => document.getElementById('step-' + s).classList.add('completed'));
+      }
+    }
+
+    async function runAgent() {
+      const userInput = document.getElementById('userInput').value.trim();
+      const customTests = document.getElementById('customTests').value.trim();
+      const model = document.getElementById('modelSelect').value;
+      const maxRetries = parseInt(document.getElementById('maxRetries').value, 10);
+      const btn = document.getElementById('btnRun');
+
+      if (!userInput) {
+        alert('Please enter a prompt or provide code to fix.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> <span>LangGraph Agent Working...</span>';
+      
+      updatePills('code');
+
+      const banner = document.getElementById('statusBanner');
+      banner.style.display = 'flex';
+      banner.className = 'status-banner';
+      banner.style.background = '#0d1527';
+      banner.style.border = '1px solid var(--border)';
+      banner.style.color = '#c084fc';
+      document.getElementById('statusIcon').className = 'fa-solid fa-spinner fa-spin';
+      document.getElementById('statusText').innerText = 'LangGraph: Analyzing specification & generating test cases...';
+
+      let step = 0;
+      const statusMsgs = [
+        'LangGraph: Analyzing specification & edge-case boundaries...',
+        'LangGraph: Synthesizing code with Responsible AI safety verification...',
+        'LangGraph: Running subprocess sandbox test assertions...',
+        'LangGraph: Checking for any assertion failures or traceback errors...'
+      ];
+
+      const statusInterval = setInterval(() => {
+        step = (step + 1) % statusMsgs.length;
+        document.getElementById('statusText').innerText = statusMsgs[step];
+        if (step === 1) updatePills('code');
+        if (step === 2) updatePills('sandbox');
+      }, 1600);
+
+      try {
+        const res = await fetch('/api/run-agent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: currentMode,
+            user_input: userInput,
+            custom_tests: customTests || null,
+            max_iterations: maxRetries,
+            model_name: model
+          })
+        });
+
+        clearInterval(statusInterval);
+
+        if (!res.ok) {
+          throw new Error('Server returned ' + res.status);
+        }
+
+        const data = await res.json();
+        renderResults(data);
+      } catch (err) {
+        clearInterval(statusInterval);
+        console.error(err);
+        banner.className = 'status-banner failed';
+        document.getElementById('statusIcon').className = 'fa-solid fa-triangle-exclamation';
+        document.getElementById('statusText').innerText = 'Execution Error: ' + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Run Autonomous Agent</span>';
+      }
+    }
+
+    function renderResults(data) {
+      updatePills('finalize');
+
+      const banner = document.getElementById('statusBanner');
+      const icon = document.getElementById('statusIcon');
+      const text = document.getElementById('statusText');
+
+      if (data.success) {
+        banner.className = 'status-banner success';
+        icon.className = 'fa-solid fa-circle-check';
+        text.innerText = `Verified Working Code: All unit test assertions PASSED in sandbox! (${data.history.length} iteration(s))`;
+      } else {
+        banner.className = 'status-banner failed';
+        icon.className = 'fa-solid fa-circle-xmark';
+        text.innerText = `Max Retries Reached: ${data.test_results.error_message || 'Tests still failing'}`;
+      }
+
+      // 1. Thought Process (Collapsible Accordion)
+      const thinkBox = document.getElementById('thinkingAccordion');
+      const thinkBody = document.getElementById('thinkingBody');
+      const thinkBadge = document.getElementById('thinkingBadge');
+      if (data.thought_process && data.thought_process.trim()) {
+        thinkBox.style.display = 'block';
+        thinkBody.innerText = data.thought_process.trim();
+        thinkBadge.innerText = data.thinking_time_sec ? `Thought for ${data.thinking_time_sec}s` : 'Completed';
+        // Auto-open if there was a self-repair or interesting reasoning
+        thinkBody.classList.remove('open');
+        document.getElementById('thinkingChevron').classList.remove('open');
+      } else {
+        thinkBox.style.display = 'none';
+      }
+
+      // 2. Conversational Response Text (Responsible AI & correctness summary)
+      const respCard = document.getElementById('responseCard');
+      const respText = document.getElementById('responseText');
+      if (data.explanation && data.explanation.trim()) {
+        respCard.style.display = 'flex';
+        respText.innerText = data.explanation.trim();
+      } else {
+        respCard.style.display = 'none';
+      }
+
+      // 3. Pure Code output (clean of fix comments)
+      document.getElementById('codeOutput').innerText = data.current_code || '# No code returned';
+
+      // 4. Separate Explanation Window below code (Normal Font)
+      const explCard = document.getElementById('explanationCard');
+      const explText = document.getElementById('explanationText');
+      
+      const critique = data.critique_notes || (data.history && data.history.length > 0 ? data.history[data.history.length - 1].critique : '');
+      if (critique && critique.trim()) {
+        explCard.style.display = 'flex';
+        explText.innerText = critique.trim();
+      } else {
+        explCard.style.display = 'none';
+      }
+
+      // 5. Tests output
+      document.getElementById('testsOutput').innerText = data.unit_tests || '# No tests';
+      document.getElementById('testSourceTag').innerText = data.tests_generated ? 'Auto-Synthesized by Agent' : 'User-Provided';
+
+      // 6. Repair history
+      const histDiv = document.getElementById('historyContainer');
+      histDiv.innerHTML = '';
+      if (data.history && data.history.length > 0) {
+        data.history.forEach(h => {
+          const item = document.createElement('div');
+          item.className = 'timeline-item';
+          const badgeClass = h.passed ? 'color: #34d399;' : 'color: #f87171;';
+          const icon = h.passed ? 'fa-check' : 'fa-xmark';
+          
+          item.innerHTML = `
+            <div class="timeline-header">
+              <span><strong>Iteration ${h.iteration}</strong>: Subprocess Sandbox</span>
+              <span style="${badgeClass}"><i class="fa-solid ${icon}"></i> ${h.status} (Passed: ${h.passed})</span>
+            </div>
+            ${h.critique ? `<div class="timeline-critique"><strong>Diagnosis:</strong> ${h.critique}</div>` : ''}
+            ${h.stderr ? `<div style="background:#090d16; padding:0.5rem; margin-top:0.5rem; border-radius:4px; font-family:var(--font-mono); font-size:0.75rem; color:#f87171;">${h.stderr}</div>` : ''}
+          `;
+          histDiv.appendChild(item);
+        });
+      }
+
+      // 7. Logs
+      const logsDiv = document.getElementById('logsContainer');
+      logsDiv.innerHTML = '';
+      if (data.logs && data.logs.length > 0) {
+        data.logs.forEach(l => {
+          const row = document.createElement('div');
+          row.className = 'log-line';
+          row.innerHTML = `<span>${l}</span>`;
+          logsDiv.appendChild(row);
+        });
+      }
+    }
+
+    function copyCode() {
+      const code = document.getElementById('codeOutput').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert('Code copied to clipboard!');
+      });
+    }
+
+    // Initialize with EMPTY inputs on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('userInput').value = '';
+      document.getElementById('customTests').value = '';
+      document.getElementById('presetSelect').value = '';
+    });
+  </script>
+</body>
+</html>
